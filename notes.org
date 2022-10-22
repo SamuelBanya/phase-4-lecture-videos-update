@@ -1,0 +1,132 @@
+* Notes
+I made the following revision to the 'app/controllers/productions_controller.rb' file:
+#+begin_src ruby
+class ProductionsController < ApplicationController
+    # NOTE: This is added to wrap the 'params' hash below:
+    wrap_parameters format: []
+    def index
+        productions = Production.all()
+        render json: productions, status: :ok
+    end
+
+    def show
+        production = Production.find_by(id: params[:id])
+
+        if production
+            render json: production, status: :ok
+        else
+            render json: {error: "production not found"}, status: :not_found
+        end
+    end
+
+    def create
+        # NOTE: I revised this line to instead use 'production_params' from the private method below:
+        # production = Production.create(params)
+        production = Production.create(production_params)
+        render json: production, status: :created
+    end
+
+    def update
+    end
+
+    private
+
+    # NOTE: This private method ONLY allows these parameter values to come inside these 'production_params'
+    def production_params
+        params.permit(:title, :genre, :budget, :image, :director, :ongoing, :description)
+    end
+end
+#+end_src
+
+I then adjusted the 'app/config/routes.rb' routes file with the following changes:
+#+begin_src ruby
+Rails.application.routes.draw do
+  resources :crew_members
+  # resources :productions, only: [:index, :show]
+  resources :productions, only: [:index, :show, :create, :update]
+  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
+
+  # Defines the root path route ("/")
+  # root "articles#index"
+end
+#+end_src
+
+I then returned to the 'app/controllers/productions_controller.rb' controller file and added the following revision to the 'update' method:
+#+begin_src ruby
+class ProductionsController < ApplicationController
+    # NOTE: This is added to wrap the 'params' hash below:
+    wrap_parameters format: []
+    def index
+        productions = Production.all()
+        render json: productions, status: :ok
+    end
+
+    def show
+        production = Production.find_by(id: params[:id])
+
+        if production
+            render json: production, status: :ok
+        else
+            render json: {error: "production not found"}, status: :not_found
+        end
+    end
+
+    def create
+        # NOTE: I revised this line to instead use 'production_params' from the private method below:
+        # production = Production.create(params)
+        production = Production.create(production_params)
+        render json: production, status: :created
+    end
+
+    def update
+        # find
+        production = Production.find_by(id: params[:id])
+        # update
+        if production
+            production.update(production_params)
+            render json: production, status: :accepted
+        else
+            render json: { error: "Production not found" }, status: :not_found
+        end
+    end
+
+    private
+
+    # NOTE: This private method ONLY allows these parameter values to come inside these 'production_params'
+    def production_params
+        params.permit(:title, :genre, :budget, :image, :director, :ongoing, :description)
+    end
+end
+#+end_src
+
+I ran the 'rails s' server command, and I then went to Postman and made the following request to revise the value 'description' symbol with a related 'PATCH' request:
+- HTTP Verb Used: PATCH
+- URL Used: http://localhost:3000/productions/10
+- Body > raw > JSON:
+#+begin_src json
+{
+    "title": "The Lion King",
+    "genre": "Musical",
+    "budget": "45000000",
+    "image": "https://en.wikipedia.org/wiki/The_Lion_King_(musical)#/media/File:The_Lion_King_Musical.svg",
+    "director": "Julie Taymor",
+    "ongoing": true,
+    "description": "a musical play based on the 1994 Walt Disney Animation Studios' animated feature film of the same name with music by Elton John, lyrics by Tim Rice, and book by Roger Allers and Irene Mecchi, along with additional music and lyrics by Lebo M, Mark Mancina, Jay Rifkin, Julie Taymor, and Hans Zimmer."
+}
+#+end_src
+
+I then received the following successful response:
+#+begin_src json
+{
+    "title": "The Lion King",
+    "genre": "Musical",
+    "budget": 45000000,
+    "image": "https://en.wikipedia.org/wiki/The_Lion_King_(musical)#/media/File:The_Lion_King_Musical.svg",
+    "director": "Julie Taymor",
+    "ongoing": true,
+    "description": "a musical play based on the 1994 Walt Disney Animation Studios' animated feature film of the same name with music by Elton John, lyrics by Tim Rice, and book by Roger Allers and Irene Mecchi, along with additional music and lyrics by Lebo M, Mark Mancina, Jay Rifkin, Julie Taymor, and Hans Zimmer.",
+    "id": 10,
+    "created_at": "2022-10-21T22:04:56.049Z",
+    "updated_at": "2022-10-22T01:28:00.046Z"
+}
+#+end_src
